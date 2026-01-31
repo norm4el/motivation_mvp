@@ -26,10 +26,12 @@
     .primary{background:rgba(99,102,241,.35);border-color:rgba(99,102,241,.55)}
     .danger{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.45)}
     .warn{background:rgba(245,158,11,.20);border-color:rgba(245,158,11,.40)}
-    select{
+    .okbtn{background:rgba(34,197,94,.20);border-color:rgba(34,197,94,.38)}
+    select, input{
       padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);
       background:rgba(255,255,255,.08);color:#eef2ff;font-weight:900
     }
+    input[type="number"]{width:130px}
 
     .stat{font-size:28px;font-weight:950;margin-top:4px}
     .bar{height:14px;background:rgba(255,255,255,.10);border-radius:999px;overflow:hidden;margin-top:8px}
@@ -39,13 +41,17 @@
       background:rgba(255,255,255,.06);font-weight:900
     }
 
-    /* ===== персонаж занимает много места ===== */
+    .tabs{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+    .tabBtn{
+      padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);font-weight:950;cursor:pointer;
+    }
+    .tabBtn.active{background:rgba(99,102,241,.35);border-color:rgba(99,102,241,.55)}
+    .tabPage[hidden]{display:none !important;}
+
     .characterCard{min-height:560px}
     .characterStage{
-      position:relative;
-      height:420px;
-      border-radius:20px;
-      border:1px solid rgba(255,255,255,.12);
+      position:relative;height:420px;border-radius:20px;border:1px solid rgba(255,255,255,.12);
       overflow:hidden;
       background:
         radial-gradient(circle at 50% 28%, rgba(99,102,241,.25), rgba(0,0,0,0) 58%),
@@ -59,10 +65,7 @@
       pointer-events:none;
     }
     .charImg{
-      position:relative;
-      height:95%;
-      width:auto;
-      object-fit:contain;
+      position:relative;height:95%;width:auto;object-fit:contain;
       filter: drop-shadow(0 22px 42px rgba(0,0,0,.65));
       transition: transform .25s ease, filter .25s ease, opacity .18s ease;
       opacity: 1;
@@ -72,27 +75,15 @@
       filter: drop-shadow(0 32px 64px rgba(99,102,241,.45));
     }
     .charMeta{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-top:12px}
-
     @keyframes pop { 0%{transform:scale(1)} 35%{transform:scale(1.12)} 100%{transform:scale(1)} }
     .pop{animation:pop 260ms ease}
 
-    /* ===== камера ===== */
     .camWrap{display:grid;gap:10px;margin-top:12px}
     .camBox{
-      position:relative;
-      border-radius:16px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.04);
-      aspect-ratio: 16/9;
-      width:100%;
-      max-height:330px;
+      position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);aspect-ratio: 16/9;width:100%;max-height:340px;
     }
-    video, canvas{
-      position:absolute; inset:0;
-      width:100%; height:100%;
-      object-fit:cover;
-    }
+    video, canvas{position:absolute; inset:0;width:100%; height:100%;object-fit:cover;}
     .statusLine{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .dot{width:10px;height:10px;border-radius:50%;background:#555;display:inline-block}
     .dot.ok{background:rgba(34,197,94,.85)}
@@ -100,127 +91,295 @@
     .dot.warn{background:rgba(245,158,11,.85)}
     .kbd{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 12px;
-      padding: 2px 6px;
-      border: 1px solid rgba(255,255,255,.14);
-      border-radius: 8px;
-      background: rgba(255,255,255,.06);
+      font-size: 12px; padding: 2px 6px;border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px;background: rgba(255,255,255,.06);
     }
+
+    .toggle{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .toggle input{transform:scale(1.2)}
+    .warnText{color:rgba(245,158,11,.95);font-weight:900}
+    .badText{color:rgba(239,68,68,.95);font-weight:900}
+    .okText{color:rgba(34,197,94,.95);font-weight:900}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Прокачка персонажа</h1>
     <p class="muted">
-      Таймер + прокачка. В строгом режиме камера контролирует: <b>в кадре</b> / <b>глаза</b> / <b>осанка</b>.
+      Таймер + прокачка. 30/5. Цель дня + streak + бонус к XP. Камера/режимы — во вкладке “Функции”.
     </p>
 
-    <div class="grid">
-      <!-- ЛЕВО: ПЕРСОНАЖ (половина экрана) -->
-      <div class="card characterCard">
-        <div class="label">Персонаж</div>
+    <div class="tabs" role="tablist" aria-label="Навигация">
+      <button class="tabBtn active" id="tabBtnMain" data-tab="main" role="tab" aria-selected="true">Главная</button>
+      <button class="tabBtn" id="tabBtnFeatures" data-tab="features" role="tab" aria-selected="false">Функции</button>
+    </div>
 
-        <div class="characterStage" id="charStage">
-          <div class="stageGlow"></div>
-          <img id="charImg" class="charImg" src="assets/char_01.png" alt="character">
-        </div>
+    <!-- ====== MAIN ====== -->
+    <section class="tabPage" id="tab-main">
+      <div class="grid">
+        <div class="card characterCard">
+          <div class="label">Персонаж</div>
 
-        <div class="charMeta">
-          <div>
-            <div class="label">Уровень</div>
-            <div id="level" class="stat">1</div>
-          </div>
-          <div>
-            <div class="label">Титул</div>
-            <div id="rank" class="pill">Новичок</div>
-          </div>
-        </div>
-
-        <div id="reward" class="muted small" style="margin-top:10px">Награда: —</div>
-
-        <div style="margin-top:14px">
-          <div class="label">Прогресс до следующего уровня</div>
-          <div class="bar"><div id="fill" class="fill"></div></div>
-          <div id="ptext" class="muted small">0%</div>
-        </div>
-
-        <p class="muted small" style="margin-top:12px">
-          Картинки берутся из <span class="kbd">assets/char_01.png … char_05.png</span>. С 5 уровня остаётся 5-я стадия.
-        </p>
-      </div>
-
-      <!-- ПРАВО: УПРАВЛЕНИЕ + КАМЕРА -->
-      <div class="card">
-        <div class="label">Таймер</div>
-        <div id="timer" class="timer">00:00:00</div>
-
-        <div class="btnRow">
-          <button id="start" class="primary">За работу</button>
-          <button id="stop" class="danger" disabled>Стоп</button>
-          <button id="reset">Сброс</button>
-        </div>
-
-        <div style="margin-top:12px" class="btnRow">
-          <span class="kbd">Режим</span>
-          <select id="strictMode">
-            <option value="presence">В кадре (база)</option>
-            <option value="eyes">Глаза открыты</option>
-            <option value="posture">Осанка (плечи)</option>
-          </select>
-
-          <button id="strictOn" class="warn">Включить камеру</button>
-          <button id="strictOff" disabled>Остановить</button>
-        </div>
-
-        <div class="camWrap">
-          <div class="statusLine">
-            <span id="dot" class="dot"></span>
-            <span id="strictStatus" class="muted small">Строгий режим: выключен</span>
-            <span id="poseState" class="muted small"></span>
-            <span id="eyesState" class="muted small"></span>
-            <span id="postureState" class="muted small"></span>
-            <span id="violation" class="muted small"></span>
+          <div class="characterStage" id="charStage">
+            <div class="stageGlow"></div>
+            <img id="charImg" class="charImg" src="assets/char_01.png" alt="character">
           </div>
 
-          <div class="camBox" id="camBox" style="display:none">
-            <video id="video" playsinline></video>
-            <canvas id="canvas"></canvas>
-          </div>
-
-          <div class="row" style="margin-top:6px">
+          <div class="charMeta">
             <div>
-              <div class="label">Всего времени</div>
-              <div id="total" class="stat">00:00:00</div>
+              <div class="label">Уровень</div>
+              <div id="level" class="stat">1</div>
+            </div>
+            <div>
+              <div class="label">Титул</div>
+              <div id="rank" class="pill">Новичок</div>
             </div>
           </div>
 
-          <p id="info" class="muted small"></p>
-          <p class="muted small">
-            Советы: для “глаза” нужен свет; для “осанки” должны быть видны оба плеча.
+          <div id="reward" class="muted small" style="margin-top:10px">Награда: —</div>
+
+          <div style="margin-top:14px">
+            <div class="label">Прогресс до следующего уровня</div>
+            <div class="bar"><div id="fill" class="fill"></div></div>
+            <div id="ptext" class="muted small">0%</div>
+          </div>
+
+          <p class="muted small" style="margin-top:12px">
+            Картинки: <span class="kbd">assets/char_01.png … char_05.png</span>. С 5 уровня остаётся 5-я стадия.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="label">Сессия</div>
+
+          <div class="row" style="margin-top:6px">
+            <div class="pill" id="cyclePill">Сейчас: —</div>
+            <div class="pill"><span class="kbd" id="cycleHint">—</span></div>
+          </div>
+
+          <div id="timer" class="timer">00:00:00</div>
+
+          <div class="btnRow">
+            <button id="start" class="primary">За работу</button>
+            <button id="stop" class="danger" disabled>Стоп</button>
+            <button id="reset">Сброс</button>
+            <button id="skipBreak" class="okbtn" disabled>Пропустить перерыв</button>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div>
+              <div class="label">XP-время</div>
+              <div id="total" class="stat">00:00:00</div>
+            </div>
+            <div class="pill" style="align-self:flex-end">
+              <span class="kbd">Камера →</span> вкладка <b>Функции</b>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px;padding:14px;border-radius:14px">
+            <div class="row">
+              <div class="label">Anti-cheat</div>
+              <div class="pill" id="honestPill">Честный XP: —</div>
+            </div>
+            <div class="toggle" style="margin-top:10px">
+              <input id="honestToggle" type="checkbox">
+              <span class="muted small"><b>Честный XP</b>: начислять XP только при включенной камере и без нарушений</span>
+            </div>
+            <div id="honestReason" class="muted small" style="margin-top:10px"></div>
+          </div>
+
+          <div class="card" style="margin-top:14px;padding:14px;border-radius:14px">
+            <div class="row">
+              <div class="label">Цель дня</div>
+              <div class="pill" id="streakPill">Streak: 0 🔥</div>
+            </div>
+
+            <div class="btnRow" style="margin-top:10px">
+              <span class="kbd">Цель</span>
+              <input id="goalMin" type="number" min="5" step="5" value="60" />
+              <span class="muted small">мин</span>
+              <span class="pill" id="bonusPill">Бонус: 1.00x</span>
+            </div>
+
+            <div style="margin-top:10px">
+              <div class="label">Сегодня (честные минуты)</div>
+              <div class="bar"><div id="goalFill" class="fill"></div></div>
+              <div id="goalText" class="muted small">0 / 60 мин</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px;padding:14px;border-radius:14px">
+            <div class="row">
+              <div class="label">Сила (отжимания)</div>
+              <div class="pill" id="strPill">Сила: ур. 1</div>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <div class="pill">Всего отжиманий: <span id="pushTotal">0</span></div>
+              <div class="pill">До след. уровня: <span id="pushToNext">10</span></div>
+            </div>
+            <div style="margin-top:10px">
+              <div class="label">Прогресс силы</div>
+              <div class="bar"><div id="strFill" class="fill"></div></div>
+              <div id="strText" class="muted small">0 / 10</div>
+            </div>
+            <p class="muted small" style="margin-top:10px">
+              Правило: <b>10 отжиманий = +1 уровень силы</b>.
+            </p>
+          </div>
+
+          <p id="info" class="muted small" style="margin-top:10px"></p>
+
+          <div class="statusLine" style="margin-top:10px">
+            <span class="dot js-dot"></span>
+            <span class="muted small js-strictStatus">Контроль: выключен</span>
+            <span class="muted small js-violation"></span>
+          </div>
+
+          <p class="muted small" style="margin-top:10px">
+            На перерыве контроль пауза — можно встать/уйти.
           </p>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- ====== FEATURES ====== -->
+    <section class="tabPage" id="tab-features" hidden>
+      <div class="grid">
+        <!-- STRICT CONTROL -->
+        <div class="card">
+          <div class="label">Контроль (строгий режим)</div>
+          <p class="muted small" style="margin-top:6px">
+            Для anti-cheat и “не отвлекаться”. Проверки: в кадре / глаза / осанка.
+          </p>
+
+          <div class="btnRow" style="margin-top:12px">
+            <span class="kbd">Профиль</span>
+            <select id="preset">
+              <option value="light">Лайт (только в кадре)</option>
+              <option value="normal">Норм (в кадре + глаза)</option>
+              <option value="hard">Хард (в кадре + глаза + осанка)</option>
+            </select>
+
+            <span class="kbd">Режим</span>
+            <select id="strictMode">
+              <option value="presence">В кадре (база)</option>
+              <option value="eyes">Глаза открыты</option>
+              <option value="posture">Осанка (плечи)</option>
+            </select>
+          </div>
+
+          <div class="btnRow" style="margin-top:10px">
+            <button id="strictOn" class="warn">Включить камеру</button>
+            <button id="strictOff" disabled>Остановить</button>
+          </div>
+
+          <div class="camWrap">
+            <div class="statusLine">
+              <span class="dot js-dot"></span>
+              <span class="muted small js-strictStatus">Контроль: выключен</span>
+              <span class="muted small js-violation"></span>
+            </div>
+
+            <div class="statusLine">
+              <span class="kbd">Поза:</span> <span class="muted small js-poseState"></span>
+              <span class="kbd">Глаза:</span> <span class="muted small js-eyesState"></span>
+              <span class="kbd">Осанка:</span> <span class="muted small js-postureState"></span>
+            </div>
+
+            <p class="muted small">
+              Советы: свет для “глаз”; для “осанки” должны быть видны оба плеча.
+            </p>
+          </div>
+        </div>
+
+        <!-- PUSHUPS FEATURE -->
+        <div class="card">
+          <div class="label">Отжимания (камера)</div>
+          <p class="muted small" style="margin-top:6px">
+            Считает по углу локтя (плечо–локоть–запястье). Лучшее положение камеры — <b>сбоку (профиль)</b>.
+          </p>
+
+          <div class="btnRow" style="margin-top:12px">
+            <button id="pushOn" class="primary">Запустить отжимания</button>
+            <button id="pushOff" class="danger" disabled>Остановить</button>
+            <button id="pushResetSession">Сброс сессии</button>
+            <button id="pushResetTotal" class="danger">Сброс общего</button>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div class="pill">Сессия: <span id="pushSession">0</span></div>
+            <div class="pill">Всего: <span id="pushTotal2">0</span></div>
+            <div class="pill">Сила: <span id="str2">ур. 1</span></div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div class="pill" id="pushPhase">Фаза: —</div>
+            <div class="pill" id="pushAngle">Угол: —</div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="label">До следующего уровня силы (10)</div>
+            <div class="bar"><div id="strFill2" class="fill"></div></div>
+            <div id="strText2" class="muted small">0 / 10</div>
+          </div>
+
+          <div class="camWrap">
+            <div class="camBox" id="camBox" style="display:none">
+              <video id="video" playsinline></video>
+              <canvas id="canvas"></canvas>
+            </div>
+            <p class="muted small" id="pushHint"></p>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <!-- TFJS + Pose Detection (MoveNet) -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.20.0/dist/tf-core.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.20.0/dist/tf-converter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.6/dist/face-landmarks-detection.min.js"></script>
 
 <script>
   // =============================
-  // A) Таймер / уровни (ускорено)
+  // 0) Tabs
   // =============================
-  const BASE = 90;   // чем меньше — тем быстрее уровни
-  const P = 1.18;    // чем меньше — тем слабее замедление
+  (function initTabs(){
+    const btnMain = document.getElementById("tabBtnMain");
+    const btnFeatures = document.getElementById("tabBtnFeatures");
+    const tabMain = document.getElementById("tab-main");
+    const tabFeatures = document.getElementById("tab-features");
+    function setTab(which){
+      const isMain = which === "main";
+      tabMain.hidden = !isMain;
+      tabFeatures.hidden = isMain;
+      btnMain.classList.toggle("active", isMain);
+      btnFeatures.classList.toggle("active", !isMain);
+      btnMain.setAttribute("aria-selected", String(isMain));
+      btnFeatures.setAttribute("aria-selected", String(!isMain));
+    }
+    btnMain.addEventListener("click", () => setTab("main"));
+    btnFeatures.addEventListener("click", () => setTab("features"));
+  })();
 
-  const KEY = "motivation_mvp_state_v7";
+  // =============================
+  // A) Timer / Levels / 30-5 / Goals / Honest XP
+  // =============================
+  const WORK_BLOCK_MS  = 30 * 60 * 1000;
+  const BREAK_BLOCK_MS =  5 * 60 * 1000;
+
+  const BASE = 90;
+  const P = 1.18;
+
+  const KEY = "motivation_mvp_state_v13_pushups_strength";
+
   let state = loadState();
   let interval = null;
+  let carryMs = 0;
+  let lastTickMs = null;
+  let lastLevelShown = null;
 
   const elTimer  = document.getElementById("timer");
   const elTotal  = document.getElementById("total");
@@ -230,24 +389,155 @@
   const elInfo   = document.getElementById("info");
   const elRank   = document.getElementById("rank");
   const elReward = document.getElementById("reward");
+  const elCyclePill = document.getElementById("cyclePill");
+  const elCycleHint = document.getElementById("cycleHint");
 
   const btnStart = document.getElementById("start");
   const btnStop  = document.getElementById("stop");
   const btnReset = document.getElementById("reset");
+  const btnSkipBreak = document.getElementById("skipBreak");
+
+  const goalMinEl = document.getElementById("goalMin");
+  const goalFillEl = document.getElementById("goalFill");
+  const goalTextEl = document.getElementById("goalText");
+  const streakPillEl = document.getElementById("streakPill");
+  const bonusPillEl = document.getElementById("bonusPill");
+
+  const honestToggleEl = document.getElementById("honestToggle");
+  const honestPillEl = document.getElementById("honestPill");
+  const honestReasonEl = document.getElementById("honestReason");
 
   const charImg = document.getElementById("charImg");
   const charStage = document.getElementById("charStage");
 
-  let lastLevelShown = null;
+  // Strength UI (Main)
+  const strPillEl = document.getElementById("strPill");
+  const pushTotalMainEl = document.getElementById("pushTotal");
+  const pushToNextMainEl = document.getElementById("pushToNext");
+  const strFillMainEl = document.getElementById("strFill");
+  const strTextMainEl = document.getElementById("strText");
 
-  // 5 стадий персонажа
-  const CHAR_STAGES = 5;
-  function stageByLevel(level){ return Math.min(CHAR_STAGES, Math.max(1, level)); }
+  // Features controls
+  const presetEl = document.getElementById("preset");
+  const strictModeEl = document.getElementById("strictMode");
+
+  function todayStr(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  function clampInt(v, a, b){ return Math.max(a, Math.min(b, Math.floor(v))); }
+
+  function isBreakMode(){ return state.cycleMode === "break"; }
+  function cycleDurationMs(){ return isBreakMode() ? BREAK_BLOCK_MS : WORK_BLOCK_MS; }
+
+  function bonusMultiplier(streak){
+    const mult = 1 + 0.05 * Math.max(0, Math.floor(streak));
+    return Math.min(1.50, Math.round(mult * 100) / 100);
+  }
+
+  function ensureTodayFresh(){
+    const t = todayStr();
+    if (state.todayDate !== t) {
+      finalizeDayAndUpdateStreak();
+      state.todayDate = t;
+      state.todayWorkMs = 0;
+      state.todayGoalDone = false;
+    }
+  }
+
+  function finalizeDayAndUpdateStreak(){
+    const goalMs = state.goalMinutes * 60 * 1000;
+    const done = state.todayWorkMs >= goalMs;
+    state.streak = done ? (state.streak || 0) + 1 : 0;
+    state.todayGoalDone = done;
+  }
+
+  function presetName(p){
+    if (p === "hard") return "Хард";
+    if (p === "normal") return "Норм";
+    return "Лайт";
+  }
+  function presetChecksText(cfg){
+    const arr = ["в кадре"];
+    if (cfg.allowEyes) arr.push("глаза");
+    if (cfg.allowPosture) arr.push("осанка");
+    return arr.join(" + ");
+  }
+
+  function getPresetConfig(){
+    const p = state.strictPreset || "normal";
+    if (p === "light") {
+      return {
+        allowEyes: false,
+        allowPosture: false,
+        POSE_MISSING_MS: 2200,
+        EYES_CLOSED_MS: 999999,
+        EAR_THRESHOLD: 0.18,
+        POSTURE_BAD_MS: 999999,
+        SHOULDER_LEVEL_RATIO: 0.07
+      };
+    }
+    if (p === "hard") {
+      return {
+        allowEyes: true,
+        allowPosture: true,
+        POSE_MISSING_MS: 1200,
+        EYES_CLOSED_MS: 700,
+        EAR_THRESHOLD: 0.20,
+        POSTURE_BAD_MS: 700,
+        SHOULDER_LEVEL_RATIO: 0.05
+      };
+    }
+    return {
+      allowEyes: true,
+      allowPosture: false,
+      POSE_MISSING_MS: 2000,
+      EYES_CLOSED_MS: 1200,
+      EAR_THRESHOLD: 0.18,
+      POSTURE_BAD_MS: 999999,
+      SHOULDER_LEVEL_RATIO: 0.07
+    };
+  }
+
+  goalMinEl.value = String(state.goalMinutes);
+  honestToggleEl.checked = !!state.honestMode;
+  presetEl.value = state.strictPreset || "normal";
+
+  goalMinEl.addEventListener("change", () => {
+    const v = Number(goalMinEl.value);
+    state.goalMinutes = clampInt(isFinite(v) ? v : 60, 5, 600);
+    goalMinEl.value = String(state.goalMinutes);
+    saveState();
+    render();
+  });
+
+  honestToggleEl.addEventListener("change", () => {
+    state.honestMode = !!honestToggleEl.checked;
+    saveState();
+    render();
+  });
+
+  presetEl.addEventListener("change", () => {
+    state.strictPreset = presetEl.value;
+    const cfg = getPresetConfig();
+    if (!cfg.allowEyes && !cfg.allowPosture) strictModeEl.value = "presence";
+    if (cfg.allowEyes && !cfg.allowPosture && strictModeEl.value === "posture") strictModeEl.value = "eyes";
+    saveState();
+    render();
+  });
 
   btnStart.onclick = () => {
     if (state.running) return;
+    ensureTodayFresh();
+
     state.running = true;
     state.startMs = Date.now();
+    if (!state.cycleMode) state.cycleMode = "work";
+    if (typeof state.cycleElapsedMs !== "number") state.cycleElapsedMs = 0;
+
+    lastTickMs = Date.now();
+    carryMs = 0;
+
     saveState();
     btnStart.disabled = true;
     btnStop.disabled = false;
@@ -257,28 +547,67 @@
 
   btnStop.onclick = () => {
     if (!state.running) return;
-    const added = Math.max(0, Math.floor((Date.now() - state.startMs) / 1000));
-    state.totalSeconds += added;
+
+    processTick();
+
     state.running = false;
     state.startMs = null;
+    lastTickMs = null;
+    carryMs = 0;
+
     saveState();
     stopTick();
+
     btnStart.disabled = false;
     btnStop.disabled = true;
-    elTimer.textContent = "00:00:00";
-    elInfo.textContent = `Добавлено: ${formatHMS(added)}.`;
+    btnSkipBreak.disabled = true;
+
+    elInfo.textContent = `Стоп. XP-время: ${formatHMS(state.totalSeconds)}.`;
     render();
   };
 
   btnReset.onclick = () => {
     if (!confirm("Сбросить прогресс?")) return;
-    state = { totalSeconds: 0, running: false, startMs: null };
+
+    state = {
+      totalSeconds: 0,
+      running: false,
+      startMs: null,
+      cycleMode: "work",
+      cycleElapsedMs: 0,
+
+      goalMinutes: 60,
+      streak: 0,
+      todayDate: todayStr(),
+      todayWorkMs: 0,
+      todayGoalDone: false,
+      lastSaveMs: 0,
+
+      honestMode: true,
+      strictPreset: "normal",
+
+      // strength
+      pushupsTotal: 0
+    };
+
     saveState();
     stopTick();
+
     btnStart.disabled = false;
     btnStop.disabled = true;
+    btnSkipBreak.disabled = true;
+
+    presetEl.value = state.strictPreset;
     elInfo.textContent = "";
     lastLevelShown = null;
+    render();
+  };
+
+  btnSkipBreak.onclick = () => {
+    if (!state.running) return;
+    if (!isBreakMode()) return;
+    switchCycleTo("work", "Перерыв пропущен. Вперёд!");
+    saveState();
     render();
   };
 
@@ -305,6 +634,9 @@
     return "Новичок";
   }
 
+  const CHAR_STAGES = 5;
+  function stageByLevel(level){ return Math.min(CHAR_STAGES, Math.max(1, level)); }
+
   function rewardText(level){
     const s = stageByLevel(level);
     if (s === 1) return "Старт. Ты начал.";
@@ -317,8 +649,7 @@
   function startTick(){
     if (interval) clearInterval(interval);
     interval = setInterval(() => {
-      const runSec = state.running ? Math.floor((Date.now() - state.startMs) / 1000) : 0;
-      elTimer.textContent = formatHMS(runSec);
+      processTick();
       render();
     }, 250);
   }
@@ -328,40 +659,146 @@
     interval = null;
   }
 
+  function advanceCycle(dtMs){
+    state.cycleElapsedMs += dtMs;
+    while (state.cycleElapsedMs >= cycleDurationMs()) {
+      state.cycleElapsedMs -= cycleDurationMs();
+      const next = isBreakMode() ? "work" : "break";
+      if (next === "break") switchCycleTo("break", "Перерыв 5 минут. Встань, разомнись.");
+      else switchCycleTo("work", "Работа 30 минут. Поехали.");
+    }
+  }
+
+  function switchCycleTo(mode, msg){
+    state.cycleMode = mode;
+
+    if (mode === "break") {
+      stopSiren();
+      clearAllViolationUI();
+    }
+
+    elInfo.textContent = msg;
+    btnSkipBreak.disabled = !(state.running && mode === "break");
+  }
+
+  function honestAllowed(){
+    if (!state.honestMode) return { ok:true, reason:"" };
+    if (isBreakMode()) return { ok:false, reason:"перерыв (XP пауза)" };
+    if (!strictEnabled) return { ok:false, reason:"включи контроль (Функции → Контроль → Включить камеру)" };
+    if (violationActive) return { ok:false, reason:"исправь нарушение (сирена/статус)" };
+    return { ok:true, reason:"" };
+  }
+
+  function processTick(){
+    if (!state.running) return;
+
+    ensureTodayFresh();
+
+    const now = Date.now();
+    if (!lastTickMs) lastTickMs = now;
+
+    let dt = now - lastTickMs;
+    if (dt < 0) dt = 0;
+    lastTickMs = now;
+
+    advanceCycle(dt);
+
+    const mult = bonusMultiplier(state.streak);
+
+    if (!isBreakMode()) {
+      const ok = honestAllowed();
+
+      if (ok.ok) {
+        state.todayWorkMs += dt;
+
+        carryMs += dt * mult;
+        while (carryMs >= 1000) {
+          state.totalSeconds += 1;
+          carryMs -= 1000;
+        }
+      } else {
+        carryMs = 0;
+      }
+
+      const goalMs = state.goalMinutes * 60 * 1000;
+      state.todayGoalDone = state.todayWorkMs >= goalMs;
+    } else {
+      carryMs = 0;
+    }
+
+    if (!state.lastSaveMs) state.lastSaveMs = 0;
+    if (now - state.lastSaveMs > 2000) {
+      state.lastSaveMs = now;
+      saveState();
+    }
+  }
+
+  // ===== strength helpers =====
+  function strengthLevelFromTotal(totalPushups){
+    // 10 отжиманий = +1 уровень. Начинаем с 1.
+    return Math.floor(Math.max(0, totalPushups) / 10) + 1;
+  }
+  function strengthProgress(totalPushups){
+    const mod = Math.max(0, totalPushups) % 10;
+    return { done: mod, toNext: 10 - mod, pct: (mod / 10) };
+  }
+  function renderStrength(){
+    const total = Number(state.pushupsTotal) || 0;
+    const lvl = strengthLevelFromTotal(total);
+    const pr = strengthProgress(total);
+
+    strPillEl.textContent = `Сила: ур. ${lvl}`;
+    pushTotalMainEl.textContent = String(total);
+    pushToNextMainEl.textContent = String(pr.toNext === 10 ? 10 : pr.toNext);
+
+    const pct = Math.floor(pr.pct * 100);
+    strFillMainEl.style.width = pct + "%";
+    strTextMainEl.textContent = `${pr.done} / 10`;
+
+    // дубли на вкладке функций
+    pushTotal2El.textContent = String(total);
+    str2El.textContent = `ур. ${lvl}`;
+
+    strFill2El.style.width = pct + "%";
+    strText2El.textContent = `${pr.done} / 10`;
+  }
+
   function render(){
-    const runSec = (state.running && state.startMs) ? Math.max(0, Math.floor((Date.now() - state.startMs) / 1000)) : 0;
-    const total = state.totalSeconds + runSec;
+    const remainingMs = Math.max(0, cycleDurationMs() - state.cycleElapsedMs);
+    elTimer.textContent = formatHMSms(remainingMs);
 
-    elTotal.textContent = formatHMS(total);
+    const modeLabel = isBreakMode() ? "Перерыв" : "Работа";
+    elCyclePill.textContent = `Сейчас: ${modeLabel}`;
+    elCycleHint.textContent = isBreakMode()
+      ? `до работы: ${formatHMSms(remainingMs)}`
+      : `до перерыва: ${formatHMSms(remainingMs)}`;
 
-    const info = calcLevel(total);
+    btnSkipBreak.disabled = !(state.running && isBreakMode());
+    if (!state.running) btnSkipBreak.disabled = true;
+
+    elTotal.textContent = formatHMS(state.totalSeconds);
+
+    const info = calcLevel(state.totalSeconds);
     elLevel.textContent = String(info.level);
 
     const pct = Math.floor(info.progress * 100);
     elFill.style.width = pct + "%";
     elPText.textContent = `${pct}% (в уровне: ${info.xpInLevel} / ${info.xpToNext} сек)`;
 
-    // смена картинки по уровню (1..5, дальше 5)
     const stage = stageByLevel(info.level);
-    if (charImg) {
-      const nextSrc = `assets/char_${String(stage).padStart(2,'0')}.png`;
-      if (!charImg.src.endsWith(nextSrc)) {
-        // мягкая смена без дерганья
-        charImg.style.opacity = "0.0";
-        setTimeout(() => {
-          charImg.src = nextSrc;
-          charImg.onload = () => { charImg.style.opacity = "1.0"; };
-          // если кеш — onload может не сработать
-          setTimeout(() => { charImg.style.opacity = "1.0"; }, 80);
-        }, 80);
-      }
+    const nextSrc = `assets/char_${String(stage).padStart(2,'0')}.png`;
+    if (charImg && !charImg.src.endsWith(nextSrc)) {
+      charImg.style.opacity = "0.0";
+      setTimeout(() => {
+        charImg.src = nextSrc;
+        charImg.onload = () => { charImg.style.opacity = "1.0"; };
+        setTimeout(() => { charImg.style.opacity = "1.0"; }, 80);
+      }, 80);
     }
 
-    // титул/награда
     elRank.textContent = titleByLevel(info.level);
     elReward.textContent = "Награда: " + rewardText(info.level);
 
-    // pop-эффект при апе
     if (lastLevelShown === null) lastLevelShown = info.level;
     if (info.level !== lastLevelShown) {
       elLevel.classList.remove("pop"); void elLevel.offsetWidth; elLevel.classList.add("pop");
@@ -369,7 +806,38 @@
       lastLevelShown = info.level;
     }
 
+    ensureTodayFresh();
+    const goalMin = state.goalMinutes;
+    const doneMin = Math.floor(state.todayWorkMs / 60000);
+    const goalMs = goalMin * 60 * 1000;
+    const prog = goalMs > 0 ? Math.min(1, state.todayWorkMs / goalMs) : 0;
+
+    goalFillEl.style.width = Math.floor(prog * 100) + "%";
+    goalTextEl.textContent = `${doneMin} / ${goalMin} мин` + (state.todayGoalDone ? " ✅" : "");
+    streakPillEl.textContent = `Streak: ${state.streak} 🔥`;
+
+    const mult = bonusMultiplier(state.streak);
+    bonusPillEl.textContent = `Бонус: ${mult.toFixed(2)}x`;
+
+    const h = honestAllowed();
+    if (!state.honestMode) {
+      honestPillEl.textContent = "Честный XP: OFF";
+      honestReasonEl.innerHTML = `<span class="warnText">XP без контроля</span> (можно накрутить)`;
+    } else {
+      honestPillEl.textContent = h.ok ? "Честный XP: OK ✅" : "Честный XP: ПАУЗА ⏸";
+      honestReasonEl.innerHTML = h.ok
+        ? `<span class="okText">XP начисляется</span>`
+        : `<span class="badText">XP остановлен:</span> ${escapeHtml(h.reason)}`;
+    }
+
     if (state.running) { btnStart.disabled = true; btnStop.disabled = false; }
+    else { btnStart.disabled = false; btnStop.disabled = true; }
+
+    renderStrength();
+  }
+
+  function escapeHtml(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
   }
 
   function formatHMS(totalSeconds){
@@ -379,82 +847,140 @@
     const sec = s % 60;
     return [h,m,sec].map(n => String(n).padStart(2,"0")).join(":");
   }
+  function formatHMSms(ms){
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return [h,m,sec].map(n => String(n).padStart(2,"0")).join(":");
+  }
 
   function loadState(){
+    const base = {
+      totalSeconds: 0,
+      running: false,
+      startMs: null,
+      cycleMode: "work",
+      cycleElapsedMs: 0,
+
+      goalMinutes: 60,
+      streak: 0,
+      todayDate: todayStr(),
+      todayWorkMs: 0,
+      todayGoalDone: false,
+      lastSaveMs: 0,
+
+      honestMode: true,
+      strictPreset: "normal",
+
+      pushupsTotal: 0
+    };
     try{
       const raw = localStorage.getItem(KEY);
-      if (!raw) return { totalSeconds: 0, running: false, startMs: null };
+      if (!raw) return base;
       const s = JSON.parse(raw);
-      return { totalSeconds: Number(s.totalSeconds) || 0, running: Boolean(s.running), startMs: (typeof s.startMs === "number" ? s.startMs : null) };
+      return {
+        totalSeconds: Number(s.totalSeconds) || 0,
+        running: Boolean(s.running),
+        startMs: (typeof s.startMs === "number" ? s.startMs : null),
+        cycleMode: (s.cycleMode === "break" ? "break" : "work"),
+        cycleElapsedMs: (typeof s.cycleElapsedMs === "number" ? Math.max(0, s.cycleElapsedMs) : 0),
+
+        goalMinutes: clampInt(Number(s.goalMinutes) || 60, 5, 600),
+        streak: Number.isFinite(Number(s.streak)) ? Math.max(0, Math.floor(Number(s.streak))) : 0,
+        todayDate: (typeof s.todayDate === "string" ? s.todayDate : todayStr()),
+        todayWorkMs: (typeof s.todayWorkMs === "number" ? Math.max(0, s.todayWorkMs) : 0),
+        todayGoalDone: Boolean(s.todayGoalDone),
+        lastSaveMs: (typeof s.lastSaveMs === "number" ? s.lastSaveMs : 0),
+
+        honestMode: (typeof s.honestMode === "boolean" ? s.honestMode : true),
+        strictPreset: (s.strictPreset === "light" || s.strictPreset === "hard" || s.strictPreset === "normal") ? s.strictPreset : "normal",
+
+        pushupsTotal: (typeof s.pushupsTotal === "number" ? Math.max(0, Math.floor(s.pushupsTotal)) : 0)
+      };
     } catch {
-      return { totalSeconds: 0, running: false, startMs: null };
+      return base;
     }
   }
   function saveState(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
   // =============================
-  // B) Строгий режим: MoveNet + FaceMesh + сирена
+  // B) Camera Core: shared camera + detectors
   // =============================
   const btnStrictOn  = document.getElementById("strictOn");
   const btnStrictOff = document.getElementById("strictOff");
-  const modeEl = document.getElementById("strictMode");
 
-  const elStrictStatus = document.getElementById("strictStatus");
-  const elViolation = document.getElementById("violation");
-  const elPoseState = document.getElementById("poseState");
-  const elEyesState = document.getElementById("eyesState");
-  const elPostureState = document.getElementById("postureState");
-  const elDot = document.getElementById("dot");
+  const btnPushOn = document.getElementById("pushOn");
+  const btnPushOff = document.getElementById("pushOff");
+  const btnPushResetSession = document.getElementById("pushResetSession");
+  const btnPushResetTotal = document.getElementById("pushResetTotal");
 
   const camBox = document.getElementById("camBox");
   const videoEl = document.getElementById("video");
   const canvasEl = document.getElementById("canvas");
   const ctx = canvasEl.getContext("2d");
 
-  // Пороги
-  const POSE_MISSING_MS = 2000;
-  const EYES_CLOSED_MS = 1200;
-  const EAR_THRESHOLD = 0.18;
-  const POSTURE_BAD_MS = 1200;
-  const SHOULDER_LEVEL_RATIO = 0.07;
+  // Pushups UI (Features)
+  const pushSessionEl = document.getElementById("pushSession");
+  const pushTotal2El = document.getElementById("pushTotal2");
+  const str2El = document.getElementById("str2");
+  const pushPhaseEl = document.getElementById("pushPhase");
+  const pushAngleEl = document.getElementById("pushAngle");
+  const strFill2El = document.getElementById("strFill2");
+  const strText2El = document.getElementById("strText2");
+  const pushHintEl = document.getElementById("pushHint");
 
-  let strictEnabled = false;
+  const $strictStatus = () => Array.from(document.querySelectorAll(".js-strictStatus"));
+  const $violation    = () => Array.from(document.querySelectorAll(".js-violation"));
+  const $dot          = () => Array.from(document.querySelectorAll(".js-dot"));
+  const $poseState    = () => Array.from(document.querySelectorAll(".js-poseState"));
+  const $eyesState    = () => Array.from(document.querySelectorAll(".js-eyesState"));
+  const $postureState = () => Array.from(document.querySelectorAll(".js-postureState"));
+  function setAllText(nodes, text){ nodes.forEach(n => n.textContent = text); }
+
+  let cameraOn = false;
   let detector = null;
   let faceDetector = null;
   let rafId = null;
   let stream = null;
 
+  let coverTransform = { r: 1, x: 0, y: 0, nw: 0, nh: 0, vw: 0, vh: 0 };
+
+  // strict state
+  let strictEnabled = false;
   let lastPoseSeenMs = 0;
   let eyesClosedSince = null;
   let postureBadSince = null;
-
-  let violationReason = ""; // "presence" | "eyes" | "posture" | ""
+  let violationReason = "";
   let violationActive = false;
 
-  let coverTransform = { r: 1, x: 0, y: 0, nw: 0, nh: 0, vw: 0, vh: 0 };
+  // pushups state (separate feature)
+  let pushupsEnabled = false;
+  let pushupsSession = 0;
+  let pushPhase = "UP"; // UP/DOWN
+  let pushLastRepMs = 0;
+  let pushStableUp = 0;
+  let pushStableDown = 0;
 
-  // сирена
+  // thresholds
+  const PUSH_UP_ANGLE = 155;
+  const PUSH_DOWN_ANGLE = 95;
+  const PUSH_MIN_INTERVAL_MS = 350;
+  const PUSH_STABLE_FRAMES = 3;
+
+  // siren
   let audioCtx = null, osc = null, gain = null, sirenTimer = null, sirenHigh = false;
 
-  btnStrictOn.onclick = async () => {
-    try { await enableStrictMode(); }
-    catch (e) {
-      console.error(e);
-      setStatus("warn", "Строгий режим: ошибка");
-      elViolation.textContent = "Ошибка. Открой консоль (F12) и пришли текст ошибки.";
-    }
-  };
-  btnStrictOff.onclick = async () => { await disableStrictMode(); };
+  function syncCanvasSize(){
+    const rect = camBox.getBoundingClientRect();
+    canvasEl.width = Math.floor(rect.width);
+    canvasEl.height = Math.floor(rect.height);
+  }
 
-  async function enableStrictMode(){
-    if (strictEnabled) return;
-    strictEnabled = true;
+  async function ensureCameraOn(){
+    if (cameraOn) return;
 
-    btnStrictOn.disabled = true;
-    btnStrictOff.disabled = false;
     camBox.style.display = "block";
-
-    initSirenAudio();
     syncCanvasSize();
     window.addEventListener("resize", syncCanvasSize);
 
@@ -479,34 +1005,21 @@
       { runtime: "tfjs", refineLandmarks: true, maxFaces: 1 }
     );
 
-    lastPoseSeenMs = Date.now();
-    eyesClosedSince = null;
-    postureBadSince = null;
-    violationReason = "";
-    violationActive = false;
-
-    setStatus("ok", "Строгий режим: включён");
-    elViolation.textContent = "";
-    elPoseState.textContent = "";
-    elEyesState.textContent = "";
-    elPostureState.textContent = "";
-
+    cameraOn = true;
+    initSirenAudio();
     loop();
   }
 
-  async function disableStrictMode(){
-    if (!strictEnabled) return;
-    strictEnabled = false;
+  async function stopCameraIfUnused(){
+    // если ни строгий режим, ни отжимания не работают — выключаем камеру
+    if (strictEnabled || pushupsEnabled) return;
 
-    btnStrictOn.disabled = false;
-    btnStrictOff.disabled = true;
-    camBox.style.display = "none";
-    window.removeEventListener("resize", syncCanvasSize);
-
-    stopSiren();
+    cameraOn = false;
 
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
+
+    stopSiren();
 
     try { if (detector) await detector.dispose(); } catch {}
     detector = null;
@@ -520,22 +1033,8 @@
     videoEl.srcObject = null;
     ctx.clearRect(0,0,canvasEl.width,canvasEl.height);
 
-    setStatus("", "Строгий режим: выключен");
-    elViolation.textContent = "";
-    elPoseState.textContent = "";
-    elEyesState.textContent = "";
-    elPostureState.textContent = "";
-
-    eyesClosedSince = null;
-    postureBadSince = null;
-    violationReason = "";
-    violationActive = false;
-  }
-
-  function syncCanvasSize(){
-    const rect = camBox.getBoundingClientRect();
-    canvasEl.width = Math.floor(rect.width);
-    canvasEl.height = Math.floor(rect.height);
+    camBox.style.display = "none";
+    window.removeEventListener("resize", syncCanvasSize);
   }
 
   function drawVideoCover(video, ctx, w, h){
@@ -569,203 +1068,15 @@
     ctx.arc(cx, cy, 3, 0, Math.PI*2);
     ctx.fill();
   }
-  function drawLine(ax, ay, bx, by){
-    ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(bx, by);
-    ctx.stroke();
-  }
-
-  function setViolation(reason, text){
-    if (!strictEnabled) return;
-    if (!violationActive) {
-      violationActive = true;
-      violationReason = reason;
-      elViolation.textContent = text;
-      setStatus("bad", "Строгий режим: НАРУШЕНИЕ");
-      startSiren();
-    }
-  }
-
-  function clearViolationIfReason(reason){
-    if (violationActive && violationReason === reason) {
-      violationActive = false;
-      violationReason = "";
-      elViolation.textContent = "";
-      setStatus("ok", "Строгий режим: включён");
-      stopSiren();
-    }
-  }
-
-  function updatePresence(hasPose){
-    if (hasPose) lastPoseSeenMs = Date.now();
-    const missingFor = Date.now() - lastPoseSeenMs;
-
-    if (missingFor > POSE_MISSING_MS) {
-      setViolation("presence", "Нарушение: тебя не видно. СИРЕНА!");
-      elPoseState.textContent = "Поза: не вижу ❌";
-    } else {
-      elPoseState.textContent = hasPose ? "Поза: найдена ✅" : "Поза: ищу…";
-      clearViolationIfReason("presence");
-    }
-  }
-
-  function checkPosture(kp){
-    const L = kp[5], R = kp[6];
-    if (!L || !R || (L.score ?? 0) < 0.25 || (R.score ?? 0) < 0.25) {
-      elPostureState.textContent = "Осанка: не вижу плечи 🤷";
-      postureBadSince = null;
-      clearViolationIfReason("posture");
-      return;
-    }
-    const shoulderWidth = Math.abs(L.x - R.x);
-    if (shoulderWidth < 20) {
-      elPostureState.textContent = "Осанка: слишком далеко 🤷";
-      postureBadSince = null;
-      clearViolationIfReason("posture");
-      return;
-    }
-    const dy = Math.abs(L.y - R.y);
-    const ratio = dy / shoulderWidth;
-
-    if (ratio > SHOULDER_LEVEL_RATIO) {
-      elPostureState.textContent = `Осанка: криво ❌ (Δ≈${Math.round(ratio*100)}%)`;
-      if (!postureBadSince) postureBadSince = Date.now();
-      if (Date.now() - postureBadSince > POSTURE_BAD_MS) {
-        setViolation("posture", "Нарушение: осанка (плечи неровно). СИРЕНА!");
-      }
-    } else {
-      elPostureState.textContent = "Осанка: ровно ✅";
-      postureBadSince = null;
-      clearViolationIfReason("posture");
-    }
-  }
-
-  function dist2D(a, b){
-    const dx = a[0] - b[0];
-    const dy = a[1] - b[1];
-    return Math.hypot(dx, dy);
-  }
-
-  function computeEARFromFace(face){
-    const ann = face.annotations;
-    if (!ann || !ann.leftEyeUpper0 || !ann.leftEyeLower0 || !ann.rightEyeUpper0 || !ann.rightEyeLower0) return null;
-
-    function eyeEAR(upper, lower){
-      const leftCorner  = upper[0];
-      const rightCorner = upper[upper.length - 1];
-      const v1 = dist2D(upper[2], lower[2]);
-      const v2 = dist2D(upper[4], lower[4]);
-      const h  = dist2D(leftCorner, rightCorner);
-      return (v1 + v2) / (2.0 * h);
-    }
-
-    const leftEAR  = eyeEAR(ann.leftEyeUpper0,  ann.leftEyeLower0);
-    const rightEAR = eyeEAR(ann.rightEyeUpper0, ann.rightEyeLower0);
-    return (leftEAR + rightEAR) / 2;
-  }
-
-  async function checkEyes(){
-    if (!faceDetector || !strictEnabled) return;
-
-    const faces = await faceDetector.estimateFaces(videoEl, { flipHorizontal: true });
-
-    if (!faces || !faces.length) {
-      elEyesState.textContent = "Лицо: не вижу ❌";
-      eyesClosedSince = null;
-      clearViolationIfReason("eyes");
-      return;
-    }
-
-    const ear = computeEARFromFace(faces[0]);
-    if (ear == null) {
-      elEyesState.textContent = "Глаза: не вижу 🤷";
-      eyesClosedSince = null;
-      clearViolationIfReason("eyes");
-      return;
-    }
-
-    if (ear < EAR_THRESHOLD) {
-      elEyesState.textContent = "Глаза: закрыты ❌";
-      if (!eyesClosedSince) eyesClosedSince = Date.now();
-      if (Date.now() - eyesClosedSince > EYES_CLOSED_MS) {
-        setViolation("eyes", "Нарушение: глаза закрыты. СИРЕНА!");
-      }
-    } else {
-      elEyesState.textContent = "Глаза: открыты ✅";
-      eyesClosedSince = null;
-      clearViolationIfReason("eyes");
-    }
-  }
-
-  async function loop(){
-    if (!strictEnabled || !detector) return;
-
-    const mode = modeEl ? modeEl.value : "presence";
-
-    const poses = await detector.estimatePoses(videoEl, { flipHorizontal: true });
-    const hasPose = !!(poses && poses.length && poses[0].keypoints && poses[0].keypoints.length);
-
-    ctx.save();
-    ctx.clearRect(0,0,canvasEl.width,canvasEl.height);
-    drawVideoCover(videoEl, ctx, canvasEl.width, canvasEl.height);
-
-    if (hasPose) {
-      const kp = poses[0].keypoints;
-      ctx.strokeStyle = "rgba(99,102,241,0.9)";
-      ctx.lineWidth = 3;
-      ctx.fillStyle = "rgba(34,197,94,0.9)";
-
-      for (const [a,b] of EDGES) {
-        const A = kp[a], B = kp[b];
-        if ((A.score ?? 0) > 0.25 && (B.score ?? 0) > 0.25) {
-          const a2 = mapToCanvas(A.x, A.y);
-          const b2 = mapToCanvas(B.x, B.y);
-          drawLine(a2.cx, a2.cy, b2.cx, b2.cy);
-        }
-      }
-      for (const p of kp) {
-        if ((p.score ?? 0) > 0.25) {
-          const c = mapToCanvas(p.x, p.y);
-          drawKeypoint(c.cx, c.cy);
-        }
-      }
-    }
-    ctx.restore();
-
-    // присутствие обязательно для всех режимов
-    updatePresence(hasPose);
-
-    // сброс лишних статусов
-    if (mode !== "eyes") elEyesState.textContent = "";
-    if (mode !== "posture") elPostureState.textContent = "";
-
-    if (mode === "posture") {
-      if (hasPose) checkPosture(poses[0].keypoints);
-      else {
-        elPostureState.textContent = "Осанка: не вижу 🤷";
-        postureBadSince = null;
-        clearViolationIfReason("posture");
-      }
-    }
-
-    if (mode === "eyes") {
-      await checkEyes();
-    } else {
-      eyesClosedSince = null;
-      clearViolationIfReason("eyes");
-    }
-
-    rafId = requestAnimationFrame(loop);
-  }
 
   function setStatus(dotState, title){
-    elStrictStatus.textContent = title;
-    elDot.className = "dot";
-    if (dotState === "ok") elDot.classList.add("ok");
-    if (dotState === "bad") elDot.classList.add("bad");
-    if (dotState === "warn") elDot.classList.add("warn");
-    if (!dotState) elDot.className = "dot";
+    setAllText($strictStatus(), title);
+    $dot().forEach(d => {
+      d.className = "dot js-dot";
+      if (dotState === "ok") d.classList.add("ok");
+      if (dotState === "bad") d.classList.add("bad");
+      if (dotState === "warn") d.classList.add("warn");
+    });
   }
 
   function initSirenAudio(){
@@ -804,11 +1115,455 @@
     if (sirenTimer) { clearInterval(sirenTimer); sirenTimer = null; }
   }
 
+  function clearAllViolationUI(){
+    violationActive = false;
+    violationReason = "";
+    setAllText($violation(), "");
+  }
+
+  function setViolation(reason, text){
+    if (!strictEnabled) return;
+    if (isBreakMode()) return;
+    if (!violationActive) {
+      violationActive = true;
+      violationReason = reason;
+      setAllText($violation(), text);
+      setStatus("bad", "Контроль: НАРУШЕНИЕ");
+      startSiren();
+    }
+  }
+
+  function clearViolationIfReason(reason){
+    if (violationActive && violationReason === reason) {
+      violationActive = false;
+      violationReason = "";
+      setAllText($violation(), "");
+      setStatus("ok", "Контроль: включён");
+      stopSiren();
+    }
+  }
+
+  function updatePresence(hasPose){
+    const cfg = getPresetConfig();
+
+    if (isBreakMode()) {
+      setAllText($poseState(), "перерыв: пауза ✅");
+      clearViolationIfReason("presence");
+      return;
+    }
+
+    if (hasPose) lastPoseSeenMs = Date.now();
+    const missingFor = Date.now() - lastPoseSeenMs;
+
+    if (missingFor > cfg.POSE_MISSING_MS) {
+      setViolation("presence", "Нарушение: тебя не видно. СИРЕНА!");
+      setAllText($poseState(), "не вижу ❌");
+    } else {
+      setAllText($poseState(), hasPose ? "найдена ✅" : "ищу…");
+      clearViolationIfReason("presence");
+    }
+  }
+
+  function checkPosture(kp){
+    const cfg = getPresetConfig();
+    if (!cfg.allowPosture) {
+      setAllText($postureState(), "— (профиль отключил)");
+      postureBadSince = null;
+      clearViolationIfReason("posture");
+      return;
+    }
+
+    if (isBreakMode()) {
+      setAllText($postureState(), "");
+      postureBadSince = null;
+      clearViolationIfReason("posture");
+      return;
+    }
+
+    const L = kp[5], R = kp[6];
+    if (!L || !R || (L.score ?? 0) < 0.25 || (R.score ?? 0) < 0.25) {
+      setAllText($postureState(), "не вижу плечи 🤷");
+      postureBadSince = null;
+      clearViolationIfReason("posture");
+      return;
+    }
+
+    const shoulderWidth = Math.abs(L.x - R.x);
+    if (shoulderWidth < 20) {
+      setAllText($postureState(), "слишком далеко 🤷");
+      postureBadSince = null;
+      clearViolationIfReason("posture");
+      return;
+    }
+
+    const dy = Math.abs(L.y - R.y);
+    const ratio = dy / shoulderWidth;
+
+    if (ratio > cfg.SHOULDER_LEVEL_RATIO) {
+      setAllText($postureState(), `криво ❌ (Δ≈${Math.round(ratio*100)}%)`);
+      if (!postureBadSince) postureBadSince = Date.now();
+      if (Date.now() - postureBadSince > cfg.POSTURE_BAD_MS) {
+        setViolation("posture", "Нарушение: осанка (плечи неровно). СИРЕНА!");
+      }
+    } else {
+      setAllText($postureState(), "ровно ✅");
+      postureBadSince = null;
+      clearViolationIfReason("posture");
+    }
+  }
+
+  function dist2D(a, b){
+    const dx = a[0] - b[0];
+    const dy = a[1] - b[1];
+    return Math.hypot(dx, dy);
+  }
+
+  function computeEARFromFace(face){
+    const ann = face.annotations;
+    if (!ann || !ann.leftEyeUpper0 || !ann.leftEyeLower0 || !ann.rightEyeUpper0 || !ann.rightEyeLower0) return null;
+
+    function eyeEAR(upper, lower){
+      const leftCorner  = upper[0];
+      const rightCorner = upper[upper.length - 1];
+      const v1 = dist2D(upper[2], lower[2]);
+      const v2 = dist2D(upper[4], lower[4]);
+      const h  = dist2D(leftCorner, rightCorner);
+      return (v1 + v2) / (2.0 * h);
+    }
+
+    const leftEAR  = eyeEAR(ann.leftEyeUpper0,  ann.leftEyeLower0);
+    const rightEAR = eyeEAR(ann.rightEyeUpper0, ann.rightEyeLower0);
+    return (leftEAR + rightEAR) / 2;
+  }
+
+  async function checkEyes(){
+    const cfg = getPresetConfig();
+    if (!cfg.allowEyes) {
+      setAllText($eyesState(), "— (профиль отключил)");
+      eyesClosedSince = null;
+      clearViolationIfReason("eyes");
+      return;
+    }
+    if (!faceDetector || !cameraOn) return;
+
+    if (isBreakMode()) {
+      setAllText($eyesState(), "");
+      eyesClosedSince = null;
+      clearViolationIfReason("eyes");
+      return;
+    }
+
+    const faces = await faceDetector.estimateFaces(videoEl, { flipHorizontal: true });
+
+    if (!faces || !faces.length) {
+      setAllText($eyesState(), "лицо: не вижу ❌");
+      eyesClosedSince = null;
+      clearViolationIfReason("eyes");
+      return;
+    }
+
+    const ear = computeEARFromFace(faces[0]);
+    if (ear == null) {
+      setAllText($eyesState(), "не вижу 🤷");
+      eyesClosedSince = null;
+      clearViolationIfReason("eyes");
+      return;
+    }
+
+    if (ear < cfg.EAR_THRESHOLD) {
+      setAllText($eyesState(), "закрыты ❌");
+      if (!eyesClosedSince) eyesClosedSince = Date.now();
+      if (Date.now() - eyesClosedSince > cfg.EYES_CLOSED_MS) {
+        setViolation("eyes", "Нарушение: глаза закрыты. СИРЕНА!");
+      }
+    } else {
+      setAllText($eyesState(), "открыты ✅");
+      eyesClosedSince = null;
+      clearViolationIfReason("eyes");
+    }
+  }
+
+  // ===== push-ups math =====
+  function angleDeg(A, B, C){
+    const abx = A.x - B.x, aby = A.y - B.y;
+    const cbx = C.x - B.x, cby = C.y - B.y;
+    const ab = Math.hypot(abx, aby);
+    const cb = Math.hypot(cbx, cby);
+    if (ab < 1e-6 || cb < 1e-6) return null;
+    const dot = abx*cbx + aby*cby;
+    let cos = dot / (ab * cb);
+    cos = Math.max(-1, Math.min(1, cos));
+    return Math.acos(cos) * 180 / Math.PI;
+  }
+
+  function bestElbowAngle(kp){
+    const MIN = 0.25;
+
+    const Ls = kp[5], Le = kp[7], Lw = kp[9];
+    const Rs = kp[6], Re = kp[8], Rw = kp[10];
+
+    const leftOk = Ls && Le && Lw && (Ls.score??0)>MIN && (Le.score??0)>MIN && (Lw.score??0)>MIN;
+    const rightOk = Rs && Re && Rw && (Rs.score??0)>MIN && (Re.score??0)>MIN && (Rw.score??0)>MIN;
+
+    const angles = [];
+    if (leftOk) {
+      const a = angleDeg(Ls, Le, Lw);
+      if (a != null) angles.push(a);
+    }
+    if (rightOk) {
+      const a = angleDeg(Rs, Re, Rw);
+      if (a != null) angles.push(a);
+    }
+    if (!angles.length) return null;
+    return angles.reduce((s,x)=>s+x,0) / angles.length;
+  }
+
+  function pushupsResetSession(){
+    pushupsSession = 0;
+    pushPhase = "UP";
+    pushLastRepMs = 0;
+    pushStableUp = 0;
+    pushStableDown = 0;
+    pushSessionEl.textContent = "0";
+    pushPhaseEl.textContent = "Фаза: —";
+    pushAngleEl.textContent = "Угол: —";
+    pushHintEl.textContent = "";
+  }
+
+  function pushupsResetTotal(){
+    if (!confirm("Сбросить общий счётчик отжиманий и силу?")) return;
+    state.pushupsTotal = 0;
+    saveState();
+    renderStrength();
+  }
+
+  function addRep(){
+    pushupsSession++;
+    pushSessionEl.textContent = String(pushupsSession);
+
+    state.pushupsTotal = (Number(state.pushupsTotal) || 0) + 1;
+    saveState();
+    renderStrength();
+  }
+
+  function updatePushups(kp){
+    const ang = bestElbowAngle(kp);
+    if (ang == null) {
+      pushHintEl.textContent = "Не вижу руку. Поставь камеру сбоку (профиль), чтобы были видны плечо–локоть–запястье.";
+      pushAngleEl.textContent = "Угол: —";
+      pushStableUp = 0; pushStableDown = 0;
+      return;
+    }
+
+    pushHintEl.textContent = "";
+    pushAngleEl.textContent = `Угол: ${Math.round(ang)}°`;
+
+    if (ang >= PUSH_UP_ANGLE) {
+      pushStableUp++;
+      pushStableDown = 0;
+    } else if (ang <= PUSH_DOWN_ANGLE) {
+      pushStableDown++;
+      pushStableUp = 0;
+    } else {
+      pushStableUp = Math.max(0, pushStableUp - 1);
+      pushStableDown = Math.max(0, pushStableDown - 1);
+    }
+
+    const now = Date.now();
+
+    if (pushPhase === "UP") {
+      pushPhaseEl.textContent = "Фаза: ВВЕРХ";
+      if (pushStableDown >= PUSH_STABLE_FRAMES) {
+        pushPhase = "DOWN";
+        pushStableDown = 0;
+        pushPhaseEl.textContent = "Фаза: ВНИЗ";
+      }
+    } else {
+      pushPhaseEl.textContent = "Фаза: ВНИЗ";
+      if (pushStableUp >= PUSH_STABLE_FRAMES) {
+        if (now - pushLastRepMs > PUSH_MIN_INTERVAL_MS) {
+          addRep();
+          pushLastRepMs = now;
+        }
+        pushPhase = "UP";
+        pushStableUp = 0;
+        pushPhaseEl.textContent = "Фаза: ВВЕРХ";
+      }
+    }
+  }
+
+  // ====== Buttons: strict ======
+  btnStrictOn.onclick = async () => {
+    try {
+      await ensureCameraOn();
+      strictEnabled = true;
+
+      btnStrictOn.disabled = true;
+      btnStrictOff.disabled = false;
+
+      lastPoseSeenMs = Date.now();
+      eyesClosedSince = null;
+      postureBadSince = null;
+      violationReason = "";
+      violationActive = false;
+
+      setStatus("ok", "Контроль: включён");
+      setAllText($violation(), "");
+    } catch(e) {
+      console.error(e);
+      setStatus("warn", "Контроль: ошибка");
+      setAllText($violation(), "Ошибка. Открой консоль (F12) и пришли текст ошибки.");
+    }
+  };
+
+  btnStrictOff.onclick = async () => {
+    strictEnabled = false;
+    btnStrictOn.disabled = false;
+    btnStrictOff.disabled = true;
+
+    stopSiren();
+    clearAllViolationUI();
+    setStatus("", "Контроль: выключен");
+    setAllText($poseState(), "");
+    setAllText($eyesState(), "");
+    setAllText($postureState(), "");
+
+    await stopCameraIfUnused();
+  };
+
+  // ====== Buttons: pushups ======
+  btnPushOn.onclick = async () => {
+    try {
+      await ensureCameraOn();
+      pushupsEnabled = true;
+      btnPushOn.disabled = true;
+      btnPushOff.disabled = false;
+
+      // чтобы не мешали друг другу: когда отжимания включены, контроль можно оставить, но сирену не запускаем в режиме отжиманий.
+      // (сейчас сирена только от strictEnabled)
+      pushupsResetSession();
+      pushHintEl.textContent = "Старт. Делай отжимания. Камера лучше сбоку (профиль).";
+    } catch(e) {
+      console.error(e);
+      pushHintEl.textContent = "Ошибка доступа к камере. Открой консоль (F12) и пришли текст ошибки.";
+    }
+  };
+
+  btnPushOff.onclick = async () => {
+    pushupsEnabled = false;
+    btnPushOn.disabled = false;
+    btnPushOff.disabled = true;
+    pushHintEl.textContent = "Остановлено.";
+    await stopCameraIfUnused();
+  };
+
+  btnPushResetSession.onclick = () => pushupsResetSession();
+  btnPushResetTotal.onclick = () => pushupsResetTotal();
+
+  // =============================
+  // Main camera loop: runs while cameraOn
+  // =============================
+  async function loop(){
+    if (!cameraOn || !detector) return;
+
+    const poses = await detector.estimatePoses(videoEl, { flipHorizontal: true });
+    const hasPose = !!(poses && poses.length && poses[0].keypoints && poses[0].keypoints.length);
+
+    ctx.save();
+    ctx.clearRect(0,0,canvasEl.width,canvasEl.height);
+    drawVideoCover(videoEl, ctx, canvasEl.width, canvasEl.height);
+
+    if (hasPose) {
+      const kp = poses[0].keypoints;
+      ctx.strokeStyle = "rgba(99,102,241,0.9)";
+      ctx.lineWidth = 3;
+      ctx.fillStyle = "rgba(34,197,94,0.9)";
+
+      for (const [a,b] of EDGES) {
+        const A = kp[a], B = kp[b];
+        if ((A.score ?? 0) > 0.25 && (B.score ?? 0) > 0.25) {
+          const a2 = mapToCanvas(A.x, A.y);
+          const b2 = mapToCanvas(B.x, B.y);
+          ctx.beginPath();
+          ctx.moveTo(a2.cx, a2.cy);
+          ctx.lineTo(b2.cx, b2.cy);
+          ctx.stroke();
+        }
+      }
+      for (const p of kp) {
+        if ((p.score ?? 0) > 0.25) {
+          const c = mapToCanvas(p.x, p.y);
+          drawKeypoint(c.cx, c.cy);
+        }
+      }
+    }
+    ctx.restore();
+
+    // Strict checks (если включено)
+    if (strictEnabled) {
+      updatePresence(hasPose);
+
+      const cfg = getPresetConfig();
+      if (strictModeEl.value === "posture") {
+        if (hasPose) checkPosture(poses[0].keypoints);
+        else {
+          setAllText($postureState(), "не вижу 🤷");
+          postureBadSince = null;
+          clearViolationIfReason("posture");
+        }
+        eyesClosedSince = null;
+        clearViolationIfReason("eyes");
+      }
+      else if (strictModeEl.value === "eyes") {
+        await checkEyes();
+        postureBadSince = null;
+        clearViolationIfReason("posture");
+      }
+      else {
+        eyesClosedSince = null;
+        postureBadSince = null;
+        clearViolationIfReason("eyes");
+        clearViolationIfReason("posture");
+      }
+    } else {
+      // чистим статусы контроля, если выключен
+      setAllText($poseState(), "");
+      setAllText($eyesState(), "");
+      setAllText($postureState(), "");
+    }
+
+    // Push-ups feature (отдельно)
+    if (pushupsEnabled) {
+      if (hasPose) updatePushups(poses[0].keypoints);
+      else {
+        pushHintEl.textContent = "Не вижу позу. Подойди в кадр/поставь камеру ниже.";
+        pushAngleEl.textContent = "Угол: —";
+      }
+    }
+
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // =============================
   // Init
+  // =============================
+  function escapeHtml(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+
+  // strength UI duplicate refs (need after elements exist)
+  // (они уже объявлены выше, но тут обновляем, чтобы линтер не ругался)
   render();
+  setStatus("", "Контроль: выключен");
+  setAllText($violation(), "");
+
   if (state.running && typeof state.startMs === "number") startTick();
-  else { btnStart.disabled = false; btnStop.disabled = true; }
-  setStatus("", "Строгий режим: выключен");
+  else { btnStart.disabled = false; btnStop.disabled = true; btnSkipBreak.disabled = true; }
+
+  // disable feature stop buttons initially
+  btnStrictOff.disabled = true;
+  btnPushOff.disabled = true;
+
 </script>
 </body>
 </html>
