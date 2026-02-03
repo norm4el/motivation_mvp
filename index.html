@@ -94,6 +94,23 @@
       font-size: 12px; padding: 2px 6px;border: 1px solid rgba(255,255,255,.14);
       border-radius: 8px;background: rgba(255,255,255,.06);
     }
+    /* ===== HABITS ===== */
+.habit{display:flex;align-items:center;gap:10px;margin-top:10px}
+.habit-name{min-width:130px;font-weight:900}
+.week{display:flex;gap:6px}
+.day{width:14px;height:14px;border-radius:50%;background:#777}
+.day.done{background:rgba(34,197,94,.9)}
+.day.missed{background:rgba(239,68,68,.9)}
+.day.future{background:rgba(148,163,184,.5)}
+.habit-check{margin-left:auto;transform:scale(1.2)}
+.habit-del{
+  padding:6px 10px;
+  border-radius:10px;
+  font-weight:900;
+  background:rgba(239,68,68,.2);
+  border:1px solid rgba(239,68,68,.4);
+}
+
 
     .toggle{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .toggle input{transform:scale(1.2)}
@@ -103,11 +120,27 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Прокачка персонажа</h1>
-    <p class="muted">
-      Таймер + прокачка. 30/5. Цель дня + streak + бонус к XP. Камера/режимы — во вкладке “Функции”.
-    </p>
+
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+    <img src="assets/logo.png" alt="inHale logo"
+     style="
+       width:72px;
+       height:72px;
+       object-fit:contain;
+       filter: drop-shadow(0 8px 20px rgba(0,0,0,.4));
+     ">
+
+  
+    <div>
+      <div style="font-size:px;font-weight:900;line-height:1">
+        inHale
+      </div>
+      <div class="muted small">
+        Enter the mode. Hold the focus.
+      </div>
+    </div>
+  </div>
+  
 
     <div class="tabs" role="tablist" aria-label="Навигация">
       <button class="tabBtn active" id="tabBtnMain" data-tab="main" role="tab" aria-selected="true">Главная</button>
@@ -143,10 +176,22 @@
             <div class="bar"><div id="fill" class="fill"></div></div>
             <div id="ptext" class="muted small">0%</div>
           </div>
+          <!-- ===== HABITS ===== -->
+<div class="card" style="margin-top:16px;padding:14px;border-radius:14px">
+  <div class="row">
+    <div class="label">Привычки</div>
+    <button id="addHabit" class="okbtn">＋</button>
+  </div>
 
-          <p class="muted small" style="margin-top:12px">
-            Картинки: <span class="kbd">assets/char_01.png … char_05.png</span>. С 5 уровня остаётся 5-я стадия.
-          </p>
+  <div id="habits" style="margin-top:10px"></div>
+
+  <p class="muted small" style="margin-top:10px">
+    7 дней: зелёный — выполнено, красный — нет. Чекбокс — отметить сегодня.
+  </p>
+</div>
+
+
+          
         </div>
 
         <div class="card">
@@ -1543,6 +1588,102 @@
 
     rafId = requestAnimationFrame(loop);
   }
+  // =============================
+// HABITS (7-дневный трекер)
+// =============================
+const HABITS_KEY = "inhale_habits_v1";
+let habits = loadHabits();
+
+const habitsEl = document.getElementById("habits");
+const addHabitBtn = document.getElementById("addHabit");
+
+addHabitBtn.onclick = () => {
+  const name = prompt("Название привычки:");
+  if (!name) return;
+  habits.push({ id: crypto.randomUUID(), name, log: {} });
+  saveHabits();
+  renderHabits();
+};
+
+function renderHabits(){
+  habitsEl.innerHTML = "";
+  const days = last7Days();
+
+  habits.forEach((h, idx) => {
+    const row = document.createElement("div");
+    row.className = "habit";
+
+    const name = document.createElement("div");
+    name.className = "habit-name";
+    name.textContent = h.name;
+
+    const week = document.createElement("div");
+    week.className = "week";
+
+    days.forEach(d => {
+      const dot = document.createElement("div");
+      dot.className = "day";
+
+      if (h.log[d.key] === true) dot.classList.add("done");
+      else if (h.log[d.key] === false) dot.classList.add("missed");
+      else dot.classList.add("missed");
+
+      dot.title = d.label;
+      week.appendChild(dot);
+    });
+
+    const todayKey = days[6].key;
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "habit-check";
+    check.checked = h.log[todayKey] === true;
+    check.onchange = () => {
+      h.log[todayKey] = check.checked;
+      saveHabits();
+      renderHabits();
+    };
+
+    const del = document.createElement("button");
+    del.className = "habit-del";
+    del.textContent = "✕";
+    del.onclick = () => {
+      if (!confirm("Удалить привычку?")) return;
+      habits.splice(idx, 1);
+      saveHabits();
+      renderHabits();
+    };
+
+    row.append(name, week, check, del);
+    habitsEl.appendChild(row);
+  });
+}
+
+function last7Days(){
+  const res = [];
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  for (let i = 6; i >= 0; i--){
+    const x = new Date(d);
+    x.setDate(x.getDate() - i);
+    const key = x.toISOString().slice(0,10);
+    res.push({
+      key,
+      label: x.toLocaleDateString("ru-RU",{day:"2-digit",month:"2-digit"})
+    });
+  }
+  return res;
+}
+
+function loadHabits(){
+  try { return JSON.parse(localStorage.getItem(HABITS_KEY)) || []; }
+  catch { return []; }
+}
+function saveHabits(){
+  localStorage.setItem(HABITS_KEY, JSON.stringify(habits));
+}
+
+renderHabits();
+
 
   // =============================
   // Init
